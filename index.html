@@ -1,0 +1,229 @@
+<!--
+Badr Ismaili 2013-2014
+// hand 
+// and set cursor to location of direct cursor
+// play multiple sounds ( so every one send his own sound)
+-->
+<html>
+<head>
+	<title>Red Button Room</title>
+	<style>
+		body{
+			margin:0px;
+			background-color:#ef3232;
+		}
+		#contentWrap{
+			display: none;
+		}
+		#nickWrap{
+font-family: 'Play', sans-serif;
+
+			font-size:20px;
+			color:#fff;
+			margin:auto;
+			position:absolute;
+			width:340;
+			height:auto;
+			top:0px;left:0px;bottom:0px;right:0px;
+		}
+		#canvas{
+			cursor:none;
+		}
+		#canvas2{
+			background-color: blue;
+		}
+		h1{
+			float:left;
+font-family: 'Alan', sans-serif;
+
+			color:#fff;
+			font-size:60px;
+			text-align:center;
+			margin-bottom:120px;
+			padding-top:50px;
+			text-shadow: 5px 5px #b82626;
+
+		}
+		input{
+			 background-color: #fff;
+  		 	 border:solid 2px #b82626;
+  			 color: #979797;
+   			 height: 40px;
+   			width: 100%;
+   			padding-left:20;
+   			border-radius:10px;
+
+		}
+		input[type=submit]{
+			border-bottom:solid 5px #b82626;
+			margin-top:20px;
+			color:#fff;
+   			padding-left:0px;
+ 			 font-family: 'Play', sans-serif;
+   			font-size:20;
+   			background-color:#ef3232;
+		}
+	</style>
+
+
+	<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<link href='http://fonts.googleapis.com/css?family=Allan' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Play' rel='stylesheet' type='text/css'>
+
+
+
+	<script type="text/javascript">
+
+	var sound = new Audio("sound.wav");
+
+	var localSound = new Audio("localSound.wav");
+
+	window.onload = function(){
+
+	//canvas setup
+	var canvas = document.getElementById("canvas");
+	var ctx = canvas.getContext("2d");
+
+	///sockets
+  	var socket = io.connect('ws://redbuttonroom-ismaili.rhcloud.com:8000/');
+	var idsOnline = 0;
+	var idsLoc = [];
+	var id = [];
+
+	var playersOnScreen = [];
+
+	var mouseX = 0;
+	var mouseY = 0;
+	var nickname = "nickname not set";
+
+	var $nickForm = $('#setNick');
+	var $nickError = $('#nickError');
+	var $nickBox = $('#nickname');
+
+	$nickForm.submit(function(e){
+		e.preventDefault();
+		if($nickBox.val()!=""){
+			console.log($nickBox.val());
+			socket.emit('idAvailable', $nickBox.val(),function(available){
+				console.log(available);
+			if(available){
+				nickname = $nickBox.val();
+				$('#nickWrap').hide();
+				$('#contentWrap').show();
+				} else{
+				$nickError.html('That name is already taken.');
+				}
+				$nickBox.val('');
+
+			});
+		}else{
+			$nickError.html('Please enter a nickname');
+		}
+
+	});
+
+
+	ctx.fillStyle="#000";
+	ctx.fillRect(0,0,canvas.width,canvas.height);
+	ctx.fillStyle="#fff";
+
+	canvas.onclick = function(e){
+		socket.emit('clicked',true);
+		localSound.pause();
+		localSound.currentTime = 0;
+		localSound.play();
+	}
+	canvas.onmousedown = function(){
+		canvas.style.boxShadow="inset 0 0 105px #000";
+	}
+	canvas.onmouseup = function(){
+		canvas.style.boxShadow="";
+	}
+
+	canvas.onmousemove = function(e){
+		socket.emit('clientMoving',{
+			'id': nickname,
+			 'x': e.offsetX,
+			 'y': e.offsetY,
+			 'play': false
+		});
+		mouseX = e.offsetX;
+		mouseY = e.offsetY;
+	}
+
+
+	socket.on('moving', function (data) {
+
+
+	});
+	socket.on('idsOnline', function(dataId,dataLoc){
+			idsOnline = dataId.length;
+			ids = dataId;
+			idsLoc = dataLoc;
+	});
+
+	socket.on('playSound',function(playSound){
+		if(playSound = true){
+			console.log('playSound');
+			sound.pause();
+			sound.currentTime=0;
+			sound.play();
+		}
+		playSound = false;
+	});
+
+	draw();
+
+	function draw(){
+	//canvas setup
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		ctx.fillStyle="#fff";
+		ctx.fillRect(canvas.width/2,canvas.height/2,10,10)
+		ctx.fillStyle="#fff";
+		ctx.font='12px Arial';
+		ctx.fillText("There are: "+idsOnline+" creatures behind the button",10,20);
+
+		ctx.beginPath();
+		ctx.fillStyle="#ef3232";
+		ctx.arc(canvas.width/2,canvas.height/2,100,0,Math.PI*2,true);
+		ctx.fill();
+		ctx.closePath();
+
+		for( i = 0; i < idsOnline; i++){
+	//		ctx.drawImage(handImg,idsLoc[i].x,idsLoc[i].y);
+	//		ctx.fillRect(idsLoc[i].x-20,idsLoc[i].y-20,50,50);
+			ctx.font='20px Arial';
+			ctx.fillStyle="#fff";
+			ctx.fillText(ids[i],idsLoc[i].x+10,idsLoc[i].y+15);
+
+		}
+
+		window.requestAnimationFrame(draw);
+
+	}
+}
+	</script>
+</head>
+<body>
+	<div id="nickWrap">
+	<h1>Red Button Room</h1>
+		<p>Enter a nickname: </p>
+		<p id="nickError"></p>
+		<form id="setNick">
+			<input size="35" id="nickname"></input>
+			<input type="submit"></input>
+		</form>
+	</div>
+
+	<div id="contentWrap">
+		<canvas id="canvas" width="500" height="300">
+		<a href="http://google.com/chrome">
+		your browser doesnt suppert HTML 5 Canvas please download a newer version"
+		</a>
+		</canvas>
+	</div>
+
+</body>
+</html>
