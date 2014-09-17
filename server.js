@@ -20,9 +20,7 @@ app.get('/', function(req, res){
     res.sendfile(__dirname + '/index.html');
 });
 // Start the server
-var port = process.env.OPENSHIFT_NODEJS_PORT || 8080
-, ip = process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1";
-server.listen(port, ip);
+
 }else{
 	var express = require('express'),
 	app = express(),
